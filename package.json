@@ -1,4 +1,15 @@
-"name": "zerotrust-portfolio",
-"version": "1.0.0",
-"description": "Production portfolio for ZeroTrust",
-"main": "server.js",
+{
+  "name": "zerotrust-portfolio",
+  "version": "1.0.0",
+  "description": "Production portfolio for ZeroTrust",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
