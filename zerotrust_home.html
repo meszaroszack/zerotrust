@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZeroTrust | Systems & Trading Infra</title>
+    <meta name="description" content="Production software for trading, privacy, and high-speed decision systems by ZeroTrust.">
+    
+    <!-- Fonts: Inter for UI, JetBrains Mono for Technical details -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        background: '#0a0c0d', // Deeper, colder black
+                        surface: {
+                            1: '#111315',
+                            2: '#181b1d',
+                            3: '#1f2326',
+                        },
+                        border: {
+                            DEFAULT: '#262a2e',
+                            hover: '#383e44',
+                            glow: 'rgba(0, 229, 153, 0.3)'
+                        },
+                        text: {
+                            primary: '#ffffff',
+                            secondary: '#a1abb3',
+                            muted: '#5e676e'
+                        },
+                        accent: {
+                            DEFAULT: '#00E599', // Cyber mint
+                            dark: '#00b377',
+                            glow: 'rgba(0, 229, 153, 0.15)'
+                        },
+                        steel: '#4A90E2' // Secondary accent for data/charts
+                    },
+                    letterSpacing: {
+                        widest: '.15em',
+                        tightest: '-.04em'
+                    },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'data-stream': 'data-stream 20s linear infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        'data-stream': {
+                            '0%': { transform: 'translateY(0)' },
+                            '100%': { transform: 'translateY(-50%)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-6px)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.text.primary');
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+
+        /* High-end Operator Noise */
+        .bg-noise {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: theme('colors.background'); }
+        ::-webkit-scrollbar-thumb { background: theme('colors.border.DEFAULT'); }
+        ::-webkit-scrollbar-thumb:hover { background: theme('colors.text.muted'); }
+
+        /* Blueprint/Grid Backgrounds */
+        .bg-blueprint {
+            background-size: 24px 24px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        }
+        
+        .bg-blueprint-dense {
+            background-size: 8px 8px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+
+        /* Premium Card Interaction */
+        .operator-card {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .operator-card:hover {
+            border-color: theme('colors.border.hover');
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.8), 0 0 20px -5px theme('colors.accent.glow');
+            transform: translateY(-2px);
+        }
+        .operator-card .card-preview {
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .operator-card:hover .card-preview {
+            transform: scale(1.02) translateY(-4px);
+        }
+
+        /* Reveal Animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Table Row Hover */
+        .deploy-row {
+            transition: background 0.2s ease, padding 0.3s ease;
+        }
+        .deploy-row:hover {
+            background: theme('colors.surface.1');
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+            border-color: theme('colors.border.hover');
+        }
+        .deploy-row:hover .row-arrow {
+            transform: translateX(4px);
+            color: theme('colors.accent.DEFAULT');
+        }
+    </style>
+</head>
+<body class="relative min-h-screen font-sans selection:bg-accent selection:text-black flex flex-col">
+
+    <div class="bg-noise fixed inset-0 mix-blend-overlay"></div>
+
+    <!-- Sticky Nav -->
+    <nav class="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
+        <div class="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="#" class="flex items-center gap-3 group">
+                <div class="w-4 h-4 bg-white group-hover:bg-accent transition-colors flex items-center justify-center overflow-hidden">
+                    <div class="w-1 h-full bg-background transform -skew-x-12"></div>
+                </div>
+                <span class="font-mono font-bold tracking-tight text-white uppercase text-sm">ZeroTrust</span>
+            </a>
+            <div class="hidden md:flex items-center gap-8 font-mono text-xs font-medium text-text-muted">
+                <a href="#work" class="hover:text-white transition-colors">WORK</a>
+                <a href="#architecture" class="hover:text-white transition-colors">ARCHITECTURE</a>
+                <a href="#contact" class="text-white hover:text-accent transition-colors flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 bg-accent rounded-full animate-pulse-fast"></span> CONTACT
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow pt-24 pb-32">
+        
+        <!-- HERO SECTION -->
+        <section class="max-w-[1400px] mx-auto px-6 py-12 md:py-24 grid grid-cols-1 lg:grid-cols-12 gap-16 items-center reveal active">
+            
+            <!-- Left: Operator Identity -->
+            <div class="lg:col-span-6 flex flex-col items-start gap-8 z-10">
+                
+                <!-- Massive Availability Badge -->
+                <div class="w-full sm:w-auto flex flex-col gap-2 group cursor-default">
+                    <div class="font-mono text-[10px] text-text-muted tracking-widest uppercase flex items-center gap-2">
+                        System Status <span class="flex-grow h-px bg-border group-hover:bg-accent/30 transition-colors w-12"></span>
+                    </div>
+                    <div class="inline-flex items-center gap-4 px-5 py-3 bg-surface-1 border border-accent/40 rounded-sm shadow-[0_0_20px_rgba(0,229,153,0.1)] group-hover:shadow-[0_0_30px_rgba(0,229,153,0.2)] group-hover:border-accent transition-all">
+                        <div class="relative flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
+                        </div>
+                        <span class="font-mono text-sm md:text-base font-bold text-accent tracking-widest uppercase">Available For New Projects</span>
+                    </div>
+                </div>
+                
+                <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tightest leading-[1.05] text-white">
+                    Live systems for markets, privacy, and operational edge.
+                </h1>
+                
+                <p class="text-lg text-text-secondary max-w-xl leading-relaxed font-light">
+                    ZeroTrust builds systems that execute. AI-driven trading bots, compliance infrastructure, and full-stack operator tools. Shipped to production. No theoretical code.
+                </p>
+
+                <div class="flex flex-wrap items-center gap-4 mt-2 font-mono text-sm">
+                    <a href="#work" class="px-8 py-4 bg-white text-black font-bold uppercase tracking-wider hover:bg-accent hover:text-black transition-all flex items-center gap-2 group">
+                        View Deploys <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+                    </a>
+                    <a href="#architecture" class="px-8 py-4 bg-surface-1 border border-border text-white uppercase tracking-wider hover:bg-surface-2 transition-colors">
+                        Architecture
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right: Command Interface Mock -->
+            <div class="lg:col-span-6 w-full h-[500px] lg:h-[600px] relative group perspective-1000">
+                <!-- Abstract Command Console -->
+                <div class="absolute inset-0 bg-surface-1 border border-border rounded-lg shadow-2xl overflow-hidden flex flex-col transform group-hover:-rotate-y-2 group-hover:rotate-x-2 transition-transform duration-700 ease-out">
+                    
+                    <!-- Top Bar -->
+                    <div class="h-8 bg-surface-2 border-b border-border flex items-center justify-between px-4">
+                        <div class="font-mono text-[9px] text-text-muted tracking-widest">ZT_OPERATOR_CONSOLE // V2.4.1</div>
+                        <div class="flex gap-1.5">
+                            <div class="w-2 h-2 bg-border rounded-full"></div>
+                            <div class="w-2 h-2 bg-border rounded-full"></div>
+                            <div class="w-2 h-2 bg-border rounded-full"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex-grow p-4 grid grid-cols-2 grid-rows-3 gap-4 bg-[#0a0c0d] relative">
+                        <div class="absolute inset-0 bg-blueprint opacity-50"></div>
+
+                        <!-- Pane 1: Signal Eval (Chart) -->
+                        <div class="col-span-2 row-span-2 bg-surface-1 border border-border rounded relative overflow-hidden z-10 flex flex-col">
+                            <div class="px-3 py-2 border-b border-border flex justify-between items-center bg-surface-2/50">
+                                <span class="font-mono text-[10px] text-accent uppercase">Active Feed: KLSH/BTCD</span>
+                                <span class="flex items-center gap-1 font-mono text-[10px] text-text-muted">
+                                    <i data-lucide="activity" class="w-3 h-3"></i> LIVE
+                                </span>
+                            </div>
+                            <div class="flex-grow relative p-4 flex items-end">
+                                <!-- Fake SVG Chart -->
+                                <svg class="w-full h-[80%] overflow-visible" viewBox="0 0 100 40" preserveAspectRatio="none">
+                                    <defs>
+                                        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stop-color="theme('colors.accent.DEFAULT')" stop-opacity="0.2"/>
+                                            <stop offset="100%" stop-color="theme('colors.accent.DEFAULT')" stop-opacity="0"/>
+                                        </linearGradient>
+                                    </defs>
+                                    <path d="M0,40 L0,25 C10,20 15,35 25,30 C35,25 40,10 50,15 C60,20 65,5 75,10 C85,15 90,5 100,2 L100,40 Z" fill="url(#chartGrad)"/>
+                                    <path d="M0,25 C10,20 15,35 25,30 C35,25 40,10 50,15 C60,20 65,5 75,10 C85,15 90,5 100,2" fill="none" stroke="theme('colors.accent.DEFAULT')" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+                                    <circle cx="100" cy="2" r="2" fill="theme('colors.accent.DEFAULT')" class="animate-pulse"/>
+                                </svg>
+                                <!-- Fake floating UI -->
+                                <div class="absolute right-4 top-4 bg-surface-2 border border-border px-2 py-1 font-mono text-[10px] text-white flex flex-col gap-1 rounded shadow-lg">
+                                    <div class="text-text-muted">VOL: 1.44M</div>
+                                    <div class="text-accent">+4.2%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pane 2: Terminal -->
+                        <div class="col-span-1 row-span-1 bg-surface-1 border border-border rounded z-10 flex flex-col overflow-hidden">
+                            <div class="px-3 py-1.5 border-b border-border bg-surface-2/50 font-mono text-[9px] text-text-muted">SYS_LOG</div>
+                            <div class="p-3 font-mono text-[9px] leading-tight text-text-secondary flex flex-col justify-end overflow-hidden flex-grow relative">
+                                <div id="hero-terminal" class="absolute bottom-3 left-3 right-3 flex flex-col gap-1.5">
+                                    <!-- JS populated -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pane 3: Metrics -->
+                        <div class="col-span-1 row-span-1 bg-surface-1 border border-border rounded z-10 flex flex-col">
+                            <div class="px-3 py-1.5 border-b border-border bg-surface-2/50 font-mono text-[9px] text-text-muted">NODE_STATUS</div>
+                            <div class="flex-grow p-3 flex flex-col justify-center gap-3">
+                                <div>
+                                    <div class="flex justify-between font-mono text-[9px] mb-1">
+                                        <span class="text-text-muted">CPU</span>
+                                        <span class="text-white">42%</span>
+                                    </div>
+                                    <div class="w-full h-1 bg-surface-3 rounded overflow-hidden">
+                                        <div class="h-full bg-white w-[42%]"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between font-mono text-[9px] mb-1">
+                                        <span class="text-text-muted">LATENCY</span>
+                                        <span class="text-accent" id="hero-latency">12ms</span>
+                                    </div>
+                                    <div class="w-full h-1 bg-surface-3 rounded overflow-hidden">
+                                        <div class="h-full bg-accent w-[15%] transition-all duration-500" id="hero-latency-bar"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- FLAGSHIP WORK SECTION -->
+        <section id="work" class="max-w-[1400px] mx-auto px-6 py-24">
+            <div class="flex flex-col md:flex-row justify-between items-end gap-6 mb-16 reveal border-b border-border pb-8">
+                <div>
+                    <h2 class="font-mono text-accent text-sm tracking-widest uppercase mb-4">Select Operations</h2>
+                    <h3 class="text-4xl md:text-5xl font-bold text-white tracking-tight">Flagship Deploys</h3>
+                </div>
+                <p class="text-text-secondary max-w-sm font-light">High-leverage systems engineered for market execution, operational control, and rigorous compliance.</p>
+            </div>
+
+            <!-- EDITORIAL GRID -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <!-- FLAGSHIP 1: Kalshi AI Trader V2 (FULL WIDTH) -->
+                <a href="https://kalshi-ai-trader-v2-production.up.railway.app/" target="_blank" rel="noopener noreferrer" class="operator-card lg:col-span-12 bg-surface-1 border border-border rounded-xl flex flex-col lg:flex-row overflow-hidden group reveal">
+                    <!-- Data/Info Side -->
+                    <div class="w-full lg:w-[40%] p-8 md:p-12 flex flex-col justify-between z-10 border-b lg:border-b-0 lg:border-r border-border bg-surface-1">
+                        <div>
+                            <div class="flex flex-wrap gap-2 mb-6">
+                                <span class="px-2 py-1 bg-accent text-black font-mono text-[10px] uppercase font-bold tracking-widest">Flagship</span>
+                                <span class="px-2 py-1 border border-border text-text-muted font-mono text-[10px] uppercase tracking-widest">Active System</span>
+                            </div>
+                            <h3 class="text-3xl font-bold text-white mb-4">Kalshi AI Trader V2</h3>
+                            <p class="text-text-secondary leading-relaxed mb-8">
+                                AI-powered Kalshi trading system engineered for event-driven market participation. Implements automated signal evaluation, risk structuring, and high-speed execution logic over prediction markets.
+                            </p>
+                            <div class="flex flex-wrap gap-2 mb-8">
+                                <span class="font-mono text-xs text-text-muted border border-border bg-surface-2 px-2 py-1">TypeScript</span>
+                                <span class="font-mono text-xs text-text-muted border border-border bg-surface-2 px-2 py-1">AI Logic</span>
+                                <span class="font-mono text-xs text-text-muted border border-border bg-surface-2 px-2 py-1">Trading Systems</span>
+                                <span class="font-mono text-xs text-text-muted border border-border bg-surface-2 px-2 py-1">Railway</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="flex-1 text-center py-3 bg-white text-black text-sm font-bold uppercase tracking-wider hover:bg-gray-200 transition-colors">Access Live System</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Visual Preview Side -->
+                    <div class="w-full lg:w-[60%] min-h-[400px] bg-[#050607] relative overflow-hidden flex items-center justify-center p-8">
+                        <div class="absolute inset-0 bg-blueprint-dense opacity-20"></div>
+                        
+                        <!-- Stylized Market Interface Mock -->
+                        <div class="card-preview w-full max-w-2xl bg-surface-2 border border-border rounded-lg shadow-2xl overflow-hidden flex flex-col relative z-10">
+                            <!-- Header -->
+                            <div class="h-10 border-b border-border flex items-center px-4 justify-between bg-surface-1">
+                                <div class="flex items-center gap-2 font-mono text-[10px] text-text-muted">
+                                    <i data-lucide="bot" class="w-3 h-3 text-accent"></i> AUTO_EXECUTION_ENGINE
+                                </div>
+                                <div class="px-2 py-0.5 bg-accent/10 text-accent border border-accent/20 rounded font-mono text-[8px]">ONLINE</div>
+                            </div>
+                            <!-- Body -->
+                            <div class="p-5 flex gap-5">
+                                <!-- Order Book Mock -->
+                                <div class="w-1/3 flex flex-col gap-1 font-mono text-[9px]">
+                                    <div class="text-text-muted mb-2 border-b border-border pb-1">ORDER_BOOK</div>
+                                    <div class="flex justify-between text-red-400"><span>SELL</span><span>0.84</span></div>
+                                    <div class="flex justify-between text-red-400"><span>SELL</span><span>0.82</span></div>
+                                    <div class="my-1 border-t border-b border-border py-1 text-white text-center font-bold text-xs">0.80</div>
+                                    <div class="flex justify-between text-accent"><span>BUY</span><span>0.78</span></div>
+                                    <div class="flex justify-between text-accent"><span>BUY</span><span>0.75</span></div>
+                                </div>
+                                <!-- Signal Eval Mock -->
+                                <div class="w-2/3 border border-border bg-surface-1 rounded p-3 flex flex-col">
+                                    <div class="text-text-muted font-mono text-[9px] mb-3">AI_SIGNAL_EVALUATION</div>
+                                    <div class="flex-grow flex items-end gap-2 pb-2 border-b border-border">
+                                        <div class="w-full h-4 bg-surface-3 rounded-sm relative"></div>
+                                        <div class="w-full h-8 bg-surface-3 rounded-sm relative"></div>
+                                        <div class="w-full h-12 bg-accent/20 border border-accent/40 rounded-sm relative overflow-hidden">
+                                            <div class="absolute bottom-0 left-0 w-full h-1/2 bg-accent/40"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 flex justify-between items-center">
+                                        <div class="font-mono text-[10px] text-white">CONFIDENCE: <span class="text-accent">94.2%</span></div>
+                                        <div class="px-3 py-1 bg-accent text-black font-mono text-[9px] font-bold">EXECUTE</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- FLAGSHIP 2: Cursor Dashboard (2/3 WIDTH) -->
+                <a href="https://cursor-kalshi-dashboard-production.up.railway.app/dashboard" target="_blank" rel="noopener noreferrer" class="operator-card lg:col-span-7 bg-surface-1 border border-border rounded-xl flex flex-col overflow-hidden group reveal" style="transition-delay: 100ms;">
+                    <div class="h-64 bg-[#050607] relative overflow-hidden border-b border-border p-6 flex items-center justify-center">
+                        <div class="absolute inset-0 bg-blueprint opacity-20"></div>
+                        
+                        <!-- Dashboard UI Mock -->
+                        <div class="card-preview w-[110%] h-[120%] mt-8 bg-surface-2 border border-border rounded-t-xl shadow-2xl p-4 flex gap-4">
+                            <!-- Sidebar -->
+                            <div class="w-1/4 border-r border-border flex flex-col gap-3 pr-4">
+                                <div class="h-4 w-1/2 bg-text-muted/30 rounded mb-4"></div>
+                                <div class="h-3 w-full bg-surface-3 rounded"></div>
+                                <div class="h-3 w-3/4 bg-surface-3 rounded"></div>
+                                <div class="h-3 w-5/6 bg-accent/20 rounded border border-accent/30"></div>
+                            </div>
+                            <!-- Main Area -->
+                            <div class="w-3/4 flex flex-col gap-4">
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div class="h-12 border border-border bg-surface-1 rounded"></div>
+                                    <div class="h-12 border border-border bg-surface-1 rounded relative overflow-hidden">
+                                        <div class="absolute bottom-0 left-0 w-full h-1 border-b-2 border-accent"></div>
+                                    </div>
+                                    <div class="h-12 border border-border bg-surface-1 rounded"></div>
+                                </div>
+                                <div class="flex-grow border border-border bg-surface-1 rounded p-2">
+                                    <div class="h-2 w-full bg-surface-3 rounded mb-2"></div>
+                                    <div class="h-2 w-full bg-surface-3 rounded mb-2"></div>
+                                    <div class="h-2 w-full bg-surface-3 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-8 flex-grow flex flex-col">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-2xl font-bold text-white">Cursor Kalshi Dashboard</h3>
+                            <span class="px-2 py-1 border border-border text-text-muted font-mono text-[10px] uppercase tracking-widest">Operator UI</span>
+                        </div>
+                        <p class="text-text-secondary text-sm mb-6 flex-grow">
+                            Production dashboard centralizing market activity, signals, and workflows into a structured operator interface.
+                        </p>
+                        <div class="flex items-center gap-3 mt-auto">
+                            <span class="flex-1 text-center py-2 border border-border text-white text-sm font-mono uppercase hover:bg-surface-2 transition-colors">Launch App</span>
+                            <object><a href="https://github.com/meszaroszack" target="_blank" rel="noopener noreferrer" class="px-4 py-2 bg-surface-2 border border-border text-white hover:bg-border transition-colors flex items-center justify-center"><i data-lucide="github" class="w-4 h-4"></i></a></object>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- FLAGSHIP 3: QSR Privacy (1/3 WIDTH) -->
+                <a href="https://qsr-privacy-observatory-production.up.railway.app/" target="_blank" rel="noopener noreferrer" class="operator-card lg:col-span-5 bg-surface-1 border border-border rounded-xl flex flex-col overflow-hidden group reveal" style="transition-delay: 200ms;">
+                    <div class="h-64 bg-[#050607] relative overflow-hidden border-b border-border flex items-center justify-center p-6">
+                        <div class="absolute inset-0 bg-noise opacity-20"></div>
+                        
+                        <!-- Analytics Mock -->
+                        <div class="card-preview w-full max-w-sm flex flex-col gap-3 z-10">
+                            <div class="w-full bg-surface-2 border border-border rounded p-3 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="shield-check" class="w-4 h-4 text-steel"></i>
+                                    <div class="font-mono text-[10px] text-white">COMPLIANCE_SCORE</div>
+                                </div>
+                                <div class="font-mono text-sm text-steel font-bold">98/100</div>
+                            </div>
+                            <div class="flex gap-3">
+                                <div class="w-1/2 bg-surface-2 border border-border rounded p-3 flex flex-col items-center justify-center py-6">
+                                    <!-- Donut Mock -->
+                                    <svg viewBox="0 0 36 36" class="w-12 h-12 text-surface-3 transform -rotate-90">
+                                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="4" />
+                                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="theme('colors.steel')" stroke-width="4" stroke-dasharray="75, 100" />
+                                    </svg>
+                                </div>
+                                <div class="w-1/2 flex flex-col gap-2">
+                                    <div class="h-full bg-surface-2 border border-border rounded p-2 flex items-center justify-center text-[8px] font-mono text-text-muted">DATA_MAPPED</div>
+                                    <div class="h-full bg-surface-2 border border-border rounded p-2 flex items-center justify-center text-[8px] font-mono text-text-muted">RISK_CLEARED</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-8 flex-grow flex flex-col">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-2xl font-bold text-white leading-tight">QSR Privacy Observatory</h3>
+                        </div>
+                        <p class="text-text-secondary text-sm mb-6 flex-grow">
+                            Client-facing analytical platform for fast food brands to execute compliance comparisons and research views.
+                        </p>
+                        <div class="flex flex-wrap gap-2 mb-6">
+                            <span class="px-2 py-1 bg-surface-2 text-text-muted font-mono text-[10px]">Privacy</span>
+                            <span class="px-2 py-1 bg-surface-2 text-text-muted font-mono text-[10px]">Analytics</span>
+                        </div>
+                        <span class="w-full text-center py-2 border border-border text-white text-sm font-mono uppercase hover:bg-surface-2 transition-colors mt-auto">View Platform</span>
+                    </div>
+                </a>
+
+            </div>
+        </section>
+
+        <!-- SECONDARY DEPLOYS LOG (TABLE/LIST FORMAT) -->
+        <section class="max-w-[1400px] mx-auto px-6 py-12">
+            <div class="mb-8 reveal">
+                <h3 class="font-mono text-text-secondary text-sm tracking-widest uppercase mb-2">System Directory</h3>
+                <div class="w-full h-px bg-border"></div>
+            </div>
+
+            <div class="flex flex-col border-b border-border font-mono">
+                <!-- Table Header -->
+                <div class="grid grid-cols-12 gap-4 py-3 border-b border-border text-[10px] text-text-muted tracking-widest uppercase mb-2 px-2 hidden md:grid">
+                    <div class="col-span-1">Status</div>
+                    <div class="col-span-3">System Name</div>
+                    <div class="col-span-4">Operational Role</div>
+                    <div class="col-span-3">Architecture</div>
+                    <div class="col-span-1 text-right">Link</div>
+                </div>
+
+                <!-- Deploy Row 1 -->
+                <a href="https://kalshi-hotkey-trader-production.up.railway.app/" target="_blank" rel="noopener noreferrer" class="deploy-row grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 py-4 border-t border-border/50 items-center reveal group">
+                    <div class="md:col-span-1 flex items-center gap-2"><span class="w-1.5 h-1.5 bg-accent rounded-full"></span><span class="md:hidden text-[10px] text-text-muted uppercase">Status: Live</span></div>
+                    <div class="md:col-span-3 text-white font-bold text-sm">Kalshi Hotkey Trader</div>
+                    <div class="md:col-span-4 text-text-secondary text-xs truncate">Fast-action interface for rapid execution.</div>
+                    <div class="md:col-span-3 flex gap-2"><span class="bg-surface-2 border border-border px-2 py-0.5 text-[9px] text-text-muted">Trading UI</span></div>
+                    <div class="md:col-span-1 text-right row-arrow"><i data-lucide="arrow-right" class="w-4 h-4 ml-auto text-text-muted"></i></div>
+                </a>
+
+                <!-- Deploy Row 2 -->
+                <a href="https://alpha-bot-production-09ed.up.railway.app/" target="_blank" rel="noopener noreferrer" class="deploy-row grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 py-4 border-t border-border/50 items-center reveal group">
+                    <div class="md:col-span-1 flex items-center gap-2"><span class="w-1.5 h-1.5 bg-accent rounded-full"></span></div>
+                    <div class="md:col-span-3 text-white font-bold text-sm">Alpha Bot</div>
+                    <div class="md:col-span-4 text-text-secondary text-xs truncate">Algorithmic systems-oriented execution tool.</div>
+                    <div class="md:col-span-3 flex gap-2"><span class="bg-surface-2 border border-border px-2 py-0.5 text-[9px] text-text-muted">Algorithmic</span></div>
+                    <div class="md:col-span-1 text-right row-arrow"><i data-lucide="arrow-right" class="w-4 h-4 ml-auto text-text-muted"></i></div>
+                </a>
+
+                <!-- Deploy Row 3 -->
+                <a href="https://kalshi-15m-bot-production.up.railway.app/" target="_blank" rel="noopener noreferrer" class="deploy-row grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 py-4 border-t border-border/50 items-center reveal group">
+                    <div class="md:col-span-1 flex items-center gap-2"><span class="w-1.5 h-1.5 bg-accent rounded-full"></span></div>
+                    <div class="md:col-span-3 text-white font-bold text-sm">Kalshi 15m Bot</div>
+                    <div class="md:col-span-4 text-text-secondary text-xs truncate">Short-interval bot for tactical timing.</div>
+                    <div class="md:col-span-3 flex gap-2"><span class="bg-surface-2 border border-border px-2 py-0.5 text-[9px] text-text-muted">Python</span></div>
+                    <div class="md:col-span-1 text-right row-arrow"><i data-lucide="arrow-right" class="w-4 h-4 ml-auto text-text-muted"></i></div>
+                </a>
+
+                <!-- Deploy Row 4 -->
+                <a href="https://compd-trader-production.up.railway.app/" target="_blank" rel="noopener noreferrer" class="deploy-row grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 py-4 border-t border-border/50 items-center reveal group">
+                    <div class="md:col-span-1 flex items-center gap-2"><span class="w-1.5 h-1.5 bg-accent rounded-full"></span></div>
+                    <div class="md:col-span-3 text-white font-bold text-sm">Compd Trader</div>
+                    <div class="md:col-span-4 text-text-secondary text-xs truncate">Compound workflow tool for market operations.</div>
+                    <div class="md:col-span-3 flex gap-2"><span class="bg-surface-2 border border-border px-2 py-0.5 text-[9px] text-text-muted">TypeScript</span></div>
+                    <div class="md:col-span-1 text-right row-arrow"><i data-lucide="arrow-right" class="w-4 h-4 ml-auto text-text-muted"></i></div>
+                </a>
+                
+                <!-- Deploy Row 5 -->
+                <a href="https://kalshi-btcd-ai-trader-production.up.railway.app/#/" target="_blank" rel="noopener noreferrer" class="deploy-row grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 py-4 border-t border-border/50 items-center reveal group">
+                    <div class="md:col-span-1 flex items-center gap-2"><span class="w-1.5 h-1.5 bg-text-muted rounded-full"></span></div>
+                    <div class="md:col-span-3 text-white font-bold text-sm">Kalshi BTCD AI</div>
+                    <div class="md:col-span-4 text-text-secondary text-xs truncate">BTC-direction trader with AI-assisted logic.</div>
+                    <div class="md:col-span-3 flex gap-2"><span class="bg-surface-2 border border-border px-2 py-0.5 text-[9px] text-text-muted">BTC/AI</span></div>
+                    <div class="md:col-span-1 text-right row-arrow"><i data-lucide="arrow-right" class="w-4 h-4 ml-auto text-text-muted"></i></div>
+                </a>
+
+                <!-- Deploy Row 6 -->
+                <a href="https://harmonious-smile-production-d853.up.railway.app/onboarding" target="_blank" rel="noopener noreferrer" class="deploy-row grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 py-4 border-t border-border/50 items-center reveal group">
+                    <div class="md:col-span-1 flex items-center gap-2"><span class="w-1.5 h-1.5 bg-accent rounded-full"></span></div>
+                    <div class="md:col-span-3 text-white font-bold text-sm">Harmonious Smile</div>
+                    <div class="md:col-span-4 text-text-secondary text-xs truncate">Onboarding flow focused on guided conversion.</div>
+                    <div class="md:col-span-3 flex gap-2"><span class="bg-surface-2 border border-border px-2 py-0.5 text-[9px] text-text-muted">UX Flow</span></div>
+                    <div class="md:col-span-1 text-right row-arrow"><i data-lucide="arrow-right" class="w-4 h-4 ml-auto text-text-muted"></i></div>
+                </a>
+
+                <!-- Deploy Row 7 -->
+                <a href="https://trader-retro-production.up.railway.app/#/" target="_blank" rel="noopener noreferrer" class="deploy-row grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 py-4 border-t border-border/50 items-center reveal group">
+                    <div class="md:col-span-1 flex items-center gap-2"><span class="w-1.5 h-1.5 bg-accent rounded-full"></span></div>
+                    <div class="md:col-span-3 text-white font-bold text-sm">Trader Retro</div>
+                    <div class="md:col-span-4 text-text-secondary text-xs truncate">Experimental UI exploring market tooling aesthetics.</div>
+                    <div class="md:col-span-3 flex gap-2"><span class="bg-surface-2 border border-border px-2 py-0.5 text-[9px] text-text-muted">Exp. UI</span></div>
+                    <div class="md:col-span-1 text-right row-arrow"><i data-lucide="arrow-right" class="w-4 h-4 ml-auto text-text-muted"></i></div>
+                </a>
+
+                <!-- Additional Rows Condensed for Brevity in Code, fully functional -->
+                <a href="https://paige-gloom-tracker-production.up.railway.app/" target="_blank" rel="noopener noreferrer" class="deploy-row grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 py-4 border-t border-border/50 items-center reveal group">
+                    <div class="md:col-span-1 flex items-center gap-2"><span class="w-1.5 h-1.5 bg-accent rounded-full"></span></div>
+                    <div class="md:col-span-3 text-white font-bold text-sm">Paige Gloom Tracker</div>
+                    <div class="md:col-span-4 text-text-secondary text-xs truncate">Focused single-purpose utility application.</div>
+                    <div class="md:col-span-3 flex gap-2"><span class="bg-surface-2 border border-border px-2 py-0.5 text-[9px] text-text-muted">Utility</span></div>
+                    <div class="md:col-span-1 text-right row-arrow"><i data-lucide="arrow-right" class="w-4 h-4 ml-auto text-text-muted"></i></div>
+                </a>
+                
+                <a href="https://web-production-d920c.up.railway.app/#/" target="_blank" rel="noopener noreferrer" class="deploy-row grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 py-4 border-t border-border/50 items-center reveal group">
+                    <div class="md:col-span-1 flex items-center gap-2"><span class="w-1.5 h-1.5 bg-accent rounded-full"></span></div>
+                    <div class="md:col-span-3 text-white font-bold text-sm">Web Production App</div>
+                    <div class="md:col-span-4 text-text-secondary text-xs truncate">Experimental rapid iteration deploy.</div>
+                    <div class="md:col-span-3 flex gap-2"><span class="bg-surface-2 border border-border px-2 py-0.5 text-[9px] text-text-muted">Web App</span></div>
+                    <div class="md:col-span-1 text-right row-arrow"><i data-lucide="arrow-right" class="w-4 h-4 ml-auto text-text-muted"></i></div>
+                </a>
+
+                <a href="https://kalshi-btcd-trader-production.up.railway.app/" target="_blank" rel="noopener noreferrer" class="deploy-row grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 py-4 border-t border-border/50 items-center reveal group">
+                    <div class="md:col-span-1 flex items-center gap-2"><span class="w-1.5 h-1.5 bg-text-muted rounded-full"></span></div>
+                    <div class="md:col-span-3 text-white font-bold text-sm">Kalshi BTCD Trader</div>
+                    <div class="md:col-span-4 text-text-secondary text-xs truncate">Directional event-market trading app.</div>
+                    <div class="md:col-span-3 flex gap-2"><span class="bg-surface-2 border border-border px-2 py-0.5 text-[9px] text-text-muted">BTC</span></div>
+                    <div class="md:col-span-1 text-right row-arrow"><i data-lucide="arrow-right" class="w-4 h-4 ml-auto text-text-muted"></i></div>
+                </a>
+
+                <a href="https://kalshi-ai-trader-production.up.railway.app/#/" target="_blank" rel="noopener noreferrer" class="deploy-row grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 py-4 border-t border-border/50 items-center reveal group">
+                    <div class="md:col-span-1 flex items-center gap-2"><span class="w-1.5 h-1.5 bg-text-muted rounded-full"></span></div>
+                    <div class="md:col-span-3 text-white font-bold text-sm">Kalshi AI (Legacy)</div>
+                    <div class="md:col-span-4 text-text-secondary text-xs truncate">V1 deployed trading architecture.</div>
+                    <div class="md:col-span-3 flex gap-2"><span class="bg-surface-2 border border-border px-2 py-0.5 text-[9px] text-text-muted">Legacy</span></div>
+                    <div class="md:col-span-1 text-right row-arrow"><i data-lucide="arrow-right" class="w-4 h-4 ml-auto text-text-muted"></i></div>
+                </a>
+            </div>
+        </section>
+
+        <!-- SYSTEM CAPABILITIES SCHEMATIC -->
+        <section id="architecture" class="max-w-[1400px] mx-auto px-6 py-24">
+            <div class="p-8 md:p-12 border border-border bg-surface-1 rounded-xl relative overflow-hidden reveal">
+                <div class="absolute inset-0 bg-blueprint-dense opacity-10"></div>
+                
+                <div class="relative z-10">
+                    <h2 class="text-2xl font-mono text-white tracking-tight uppercase mb-2">Operational Surface // Capabilities</h2>
+                    <p class="text-text-secondary mb-12 font-mono text-xs">Architectural systems built for execution, not presentation.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12 border-t border-border pt-12">
+                        
+                        <!-- Block 1 -->
+                        <div class="flex flex-col gap-3 group">
+                            <div class="font-mono text-[10px] text-accent border border-accent/30 bg-accent/10 w-fit px-2 py-1 mb-2">SYS.01</div>
+                            <h3 class="text-xl font-bold text-white">Trading Infrastructure</h3>
+                            <p class="text-text-secondary text-sm font-light leading-relaxed">
+                                High-speed algorithmic bots, hotkey execution interfaces, and AI-assisted signal pipelines engineered for prediction markets and crypto order books.
+                            </p>
+                            <div class="font-mono text-xs text-text-muted mt-2">
+                                [ TypeScript, Python, WebSockets, APIs ]
+                            </div>
+                        </div>
+
+                        <!-- Block 2 -->
+                        <div class="flex flex-col gap-3 group">
+                            <div class="font-mono text-[10px] text-white border border-border bg-surface-2 w-fit px-2 py-1 mb-2">SYS.02</div>
+                            <h3 class="text-xl font-bold text-white">Operator Dashboards</h3>
+                            <p class="text-text-secondary text-sm font-light leading-relaxed">
+                                Internal tools and control planes that consolidate complex, high-velocity data streams into actionable, low-latency visual structures.
+                            </p>
+                            <div class="font-mono text-xs text-text-muted mt-2">
+                                [ React, Node.js, Real-time state ]
+                            </div>
+                        </div>
+
+                        <!-- Block 3 -->
+                        <div class="flex flex-col gap-3 group">
+                            <div class="font-mono text-[10px] text-white border border-border bg-surface-2 w-fit px-2 py-1 mb-2">SYS.03</div>
+                            <h3 class="text-xl font-bold text-white">Compliance & Privacy</h3>
+                            <p class="text-text-secondary text-sm font-light leading-relaxed">
+                                Client-facing observatories built for strict regulatory environments, data governance, and large-scale cross-brand compliance analytics.
+                            </p>
+                            <div class="font-mono text-xs text-text-muted mt-2">
+                                [ Governance, Auth, Secure Ops ]
+                            </div>
+                        </div>
+
+                        <!-- Block 4 -->
+                        <div class="flex flex-col gap-3 group">
+                            <div class="font-mono text-[10px] text-white border border-border bg-surface-2 w-fit px-2 py-1 mb-2">SYS.04</div>
+                            <h3 class="text-xl font-bold text-white">Rapid Deployment</h3>
+                            <p class="text-text-secondary text-sm font-light leading-relaxed">
+                                Immediate execution on experimental apps, onboarding UX, and utility tools shipped directly to production via Railway and Vercel.
+                            </p>
+                            <div class="font-mono text-xs text-text-muted mt-2">
+                                [ Railway, Vercel, CI/CD, Product UI ]
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER / HIGH-STATUS CLOSING -->
+    <footer id="contact" class="bg-[#050607] border-t border-border pb-12 pt-24 md:pt-32 relative overflow-hidden">
+        <div class="absolute inset-0 bg-blueprint opacity-10"></div>
+        <div class="max-w-[1400px] mx-auto px-6 relative z-10 text-center md:text-left flex flex-col md:flex-row justify-between items-end gap-12">
+            
+            <div class="reveal">
+                <div class="font-mono text-accent text-sm tracking-widest uppercase mb-4 flex items-center gap-2 justify-center md:justify-start">
+                    <span class="w-2 h-2 bg-accent"></span> INITIATE SEQUENCE
+                </div>
+                <h2 class="text-5xl md:text-7xl font-bold text-white tracking-tightest mb-6">
+                    Ready to deploy.
+                </h2>
+                <p class="text-text-secondary max-w-md font-light mb-12 text-lg">
+                    If you require a builder capable of translating complex operational needs into live, executing systems—open a line.
+                </p>
+                
+                <div class="flex flex-col sm:flex-row items-center gap-4">
+                    <!-- Updated Contact Email -->
+                    <a href="mailto:contact@zerotrust.dev" class="w-full sm:w-auto px-10 py-5 bg-white text-black font-bold uppercase tracking-widest text-sm hover:bg-accent transition-colors flex items-center justify-center gap-3">
+                        <i data-lucide="mail" class="w-4 h-4"></i> contact@zerotrust.dev
+                    </a>
+                    <a href="https://github.com/meszaroszack" target="_blank" rel="noopener noreferrer" class="w-full sm:w-auto px-10 py-5 bg-surface-1 border border-border text-white font-bold uppercase tracking-widest text-sm hover:bg-surface-2 transition-colors flex items-center justify-center gap-3">
+                        <i data-lucide="github" class="w-4 h-4"></i> GitHub
+                    </a>
+                </div>
+            </div>
+
+            <!-- Operator Stamp -->
+            <div class="font-mono text-xs text-text-muted text-right hidden md:block reveal" style="transition-delay: 200ms;">
+                <div class="mb-1">ALIAS: ZEROTRUST</div>
+                <div class="mb-1">LOC: ATLANTA, GA</div>
+                <div class="mb-4">OP_STATUS: <span class="text-accent">AVAILABLE</span></div>
+                <div class="text-[9px] uppercase tracking-widest opacity-50 border-t border-border pt-2 mt-2">
+                    System Time: <span id="footer-time"></span>
+                </div>
+            </div>
+
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // High-end Terminal Simulation
+        const terminalLog = document.getElementById('hero-terminal');
+        const latencyBar = document.getElementById('hero-latency-bar');
+        const latencyText = document.getElementById('hero-latency');
+        const footerTime = document.getElementById('footer-time');
+
+        const logs = [
+            "INIT connection -> wss://feed.kalshi.com",
+            "AUTH token verified. Session 0x9F.",
+            "SUBSCRIBE ticker [INFLATION, BTCD]",
+            "RECV msg=update vol=HIGH",
+            "EVALUATE signal -> threshold=0.85",
+            "EXEC order 0x9A4F -> filled @ 0.42",
+            "SYNC state database -> [OK]",
+            "POLL /v1/portfolio...",
+            "WARN latency spike -> shifting node",
+            "CALC risk_exposure -> LOW",
+        ];
+
+        function pushLog() {
+            if (!terminalLog) return;
+            const logStr = logs[Math.floor(Math.random() * logs.length)];
+            const el = document.createElement('div');
+            el.className = "whitespace-nowrap truncate animate-[reveal_0.2s_ease-out]";
+            
+            let color = "text-text-muted";
+            if(logStr.includes("EXEC") || logStr.includes("AUTH")) color = "text-accent";
+            if(logStr.includes("WARN")) color = "text-yellow-500";
+            
+            el.innerHTML = `<span class="${color}">> ${logStr}</span>`;
+            terminalLog.appendChild(el);
+            
+            if(terminalLog.children.length > 5) {
+                terminalLog.removeChild(terminalLog.firstChild);
+            }
+        }
+
+        // Clock & Metrics Update
+        setInterval(() => {
+            if(footerTime) {
+                const now = new Date();
+                footerTime.textContent = now.toISOString().split('T')[1].split('.')[0] + ' UTC';
+            }
+            
+            if(Math.random() > 0.6 && latencyText) {
+                const ms = Math.floor(Math.random() * 20) + 8;
+                latencyText.textContent = ms + 'ms';
+                latencyBar.style.width = (ms / 30 * 100) + '%';
+                if(ms > 20) {
+                    latencyText.classList.replace('text-accent', 'text-yellow-500');
+                    latencyBar.classList.replace('bg-accent', 'bg-yellow-500');
+                } else {
+                    latencyText.classList.replace('text-yellow-500', 'text-accent');
+                    latencyBar.classList.replace('bg-yellow-500', 'bg-accent');
+                }
+            }
+        }, 1000);
+
+        setInterval(pushLog, 1200);
+        for(let i=0; i<5; i++) pushLog();
+
+        // Scroll Observer
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, { threshold: 0.1, rootMargin: "0px 0px -50px 0px" });
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>
