@@ -1,0 +1,4 @@
+"name": "zerotrust-portfolio",
+"version": "1.0.0",
+"description": "Production portfolio for ZeroTrust",
+"main": "server.js",
